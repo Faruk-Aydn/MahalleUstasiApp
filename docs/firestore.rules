@@ -1,0 +1,61 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isJobOwner(jobId) {
+      return get(/databases/$(database)/documents/jobs/$(jobId)).data.ownerId == request.auth.uid;
+    }
+    function getJob(jobId) {
+      return get(/databases/$(database)/documents/jobs/$(jobId)).data;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
+    match /job_offers/{offerId} {
+      allow read: if signedIn() && (
+        resource.data.proId == request.auth.uid ||
+        isJobOwner(resource.data.jobId)
+      );
+      allow create: if signedIn() && request.resource.data.proId == request.auth.uid;
+      allow update: if signedIn() && (
+        (request.auth.uid == resource.data.proId &&
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'withdrawn') ||
+        (isJobOwner(resource.data.jobId) &&
+         resource.data.status == 'pending' &&
+         (request.resource.data.status == 'accepted' || request.resource.data.status == 'rejected'))
+      );
+    }
+
+    match /notifications/{id} {
+      allow read, write: if signedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == request.resource.data.reviewerId;
+    }
+
+    match /messages/{chatId}/chatMessages/{msgId} {
+      allow read, write: if signedIn() && (
+        let job = getJob(chatId);
+        job.ownerId == request.auth.uid || job.assignedProId == request.auth.uid
+      );
+    }
+  }
+}

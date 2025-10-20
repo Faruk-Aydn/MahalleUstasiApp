@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() { return request.auth != null; }
+
+    // Profil fotoğrafları: profileImages/{uid}/{file}
+    match /profileImages/{uid}/{fileName} {
+      allow read: if signedIn();
+      // Sadece sahibi yükleyebilir/silebilir
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // İş fotoğrafları: jobImages/{jobId}/{file}
+    match /jobImages/{jobId}/{fileName} {
+      // Okuma: oturum açmış kullanıcılar görebilir (isteğe göre public yapılabilir)
+      allow read: if signedIn();
+      // Yazma: sadece oturum açmış kullanıcılar; ileri aşamada job.ownerId kontrolü CF ile yapılabilir
+      allow write: if signedIn();
+    }
+
+    // Sohbet görselleri: chat_images/{chatId}/{file}
+    match /chat_images/{chatId}/{fileName} {
+      // Okuma/Yazma: oturum açmış kullanıcılar
+      // Not: Katılımcı doğrulaması Firestore tarafındaki participants ile CF veya App-Check üzerinden güçlendirilebilir
+      allow read, write: if signedIn();
+    }
+  }
+}

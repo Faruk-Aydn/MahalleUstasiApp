@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isJobOwner(jobId) {
+      return get(/databases/$(database)/documents/jobs/$(jobId)).data.ownerId == request.auth.uid;
+    }
+    function getJob(jobId) {
+      return get(/databases/$(database)/documents/jobs/$(jobId)).data;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && request.auth.uid == uid;
+    }
+ 
+    // Posts koleksiyonu: anasayfa akışı için gereklidir
+    match /posts/{postId} {
+      allow read: if true; // tüm kullanıcılar okuyabilir
+      allow create: if signedIn(); // sadece giriş yapanlar ilan oluşturabilir
+      allow update, delete: if signedIn() && request.auth.uid == resource.data.userId; // sadece sahibi düzenleyebilir/silebilir
+    }
+
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if signedIn();
+      allow update, delete: if signedIn() && request.auth.uid == resource.data.ownerId;
+    }
+
+    match /job_offers/{offerId} {
+      allow read: if signedIn() && (
+        resource.data.proId == request.auth.uid ||
+        isJobOwner(resource.data.jobId)
+      );
+      // Teklif oluşturma: sadece teklif sahibi (proId == uid)
+      allow create: if signedIn() && request.resource.data.proId == request.auth.uid;
+      // Güncelleme kuralları:
+      // - Teklif sahibi pending -> withdrawn yapabilir
+      // - İş sahibi pending -> accepted/rejected yapabilir
+      allow update: if signedIn() && (
+        // Teklif sahibi withdrawn
+        (request.auth.uid == resource.data.proId &&
+         resource.data.status == 'pending' &&
+         request.resource.data.status == 'withdrawn') ||
+        // İş sahibi accept/reject
+        (isJobOwner(resource.data.jobId) &&
+         resource.data.status == 'pending' &&
+         (request.resource.data.status == 'accepted' || request.resource.data.status == 'rejected'))
+      );
+    }
+
+    match /notifications/{id} {
+      allow read, write: if signedIn() && request.auth.uid == resource.data.userId;
+    }
+
+    match /reviews/{id} {
+      allow read: if true;
+      allow create: if signedIn() && request.auth.uid == request.resource.data.reviewerId;
+    }
+
+    match /messages/{chatId}/chatMessages/{msgId} {
+      // Sohbet kimliği iş kimliği olarak kullanılıyor
+      // Erişim yalnızca iş sahibi veya atanan usta içindir
+      allow read, write: if signedIn() && (
+        let job = getJob(chatId);
+        job.ownerId == request.auth.uid || job.assignedProId == request.auth.uid
+      );
+    }
+  }
+}

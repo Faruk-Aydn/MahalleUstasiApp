@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "715948184497",
+    "project_id": "mahalleustasiapp",
+    "storage_bucket": "mahalleustasiapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:715948184497:android:ec0fd934bb36f739f2a390",
+        "android_client_info": {
+          "package_name": "com.example.mahalleustasi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "715948184497-v7gb1jqoroa5h0nf8dgqa8ttr1pf900d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.mahalleustasi",
+            "certificate_hash": "22432a6ab161ea88e77f81935e97b81cc4256b59"
+          }
+        },
+        {
+          "client_id": "715948184497-en6jnqbnlm82iutdna34ee7bof3n4bef.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAyCmD3_LUnr0DolFmpujIKK_J3mhL7Oyc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "715948184497-en6jnqbnlm82iutdna34ee7bof3n4bef.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
