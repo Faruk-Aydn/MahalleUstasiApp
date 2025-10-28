@@ -67,9 +67,11 @@ import coil.compose.AsyncImage
 import com.example.mahalleustasi.data.model.Job
 import com.example.mahalleustasi.data.model.Offer
 import com.example.mahalleustasi.data.model.User // Bu modelin sizde olduğunu varsayıyoruz
+import com.example.mahalleustasi.data.model.Review
 import com.example.mahalleustasi.ui.viewmodel.JobDetailViewModel
 import com.example.mahalleustasi.ui.viewmodel.OffersViewModel
 import com.example.mahalleustasi.ui.viewmodel.UsersViewModel
+import com.example.mahalleustasi.ui.viewmodel.ReviewsViewModel
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import java.text.SimpleDateFormat
@@ -84,27 +86,101 @@ fun JobDetailScreen(
     jobId: String,
     offersViewModel: OffersViewModel,
     jobDetailViewModel: JobDetailViewModel = hiltViewModel(),
-    usersVm: UsersViewModel = hiltViewModel()
+    usersVm: UsersViewModel = hiltViewModel(),
+    reviewsVm: ReviewsViewModel = hiltViewModel()
 ) {
     // State Değişkenleri
     var amount by remember { mutableStateOf("") }
+
+@Composable
+fun CompleteJobReviewDialog(
+    rating: Int,
+    onRatingChange: (Int) -> Unit,
+    comment: String,
+    onCommentChange: (String) -> Unit,
+    loading: Boolean,
+    onDismiss: () -> Unit,
+    onSubmit: () -> Unit,
+    revieweeName: String = "Kullanıcı"
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(text = "$revieweeName için Puan Ver", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "İşi tamamlayan kişiyi puanlayın (1-5 yıldız)",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    (1..5).forEach { star ->
+                        OutlinedButton(
+                            onClick = { onRatingChange(star) },
+                            enabled = !loading,
+                            colors = if (rating >= star) {
+                                androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            } else {
+                                androidx.compose.material3.ButtonDefaults.outlinedButtonColors()
+                            }
+                        ) {
+                            Text("⭐")
+                        }
+                    }
+                }
+                OutlinedTextField(
+                    value = comment,
+                    onValueChange = onCommentChange,
+                    label = { Text("Yorum (opsiyonel)") },
+                    minLines = 3,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !loading
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), enabled = !loading) { Text("İptal") }
+                    Button(onClick = onSubmit, modifier = Modifier.weight(1f), enabled = !loading && rating in 1..5) {
+                        if (loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Text("Gönder")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
     var note by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var isSubmitting by remember { mutableStateOf(false) }
     var previewUrl by remember { mutableStateOf<String?>(null) }
     var showOfferDialog by remember { mutableStateOf(false) }
     var showOffersListDialog by remember { mutableStateOf(false) }
+    var showReviewDialog by remember { mutableStateOf(false) }
+    var reviewRating by remember { mutableStateOf(0) }
+    var reviewComment by remember { mutableStateOf("") }
+    var reviewTargetId by remember { mutableStateOf<String?>(null) } // Kim için review yapılıyor
+    var checkingReview by remember { mutableStateOf(false) }
+    var lastCheckedJobStatus by remember { mutableStateOf<String?>(null) } // Son kontrol edilen job status
 
     // ViewModel'lerden veri çekme
     val job by jobDetailViewModel.job.collectAsState()
     val offers by offersViewModel.offers.collectAsState()
     val userMap by usersVm.userMap.collectAsState()
     val currentUid = Firebase.auth.currentUser?.uid
+    val updating by jobDetailViewModel.updating.collectAsState()
+    val vmError by jobDetailViewModel.error.collectAsState()
+    val toastMessage by jobDetailViewModel.toast.collectAsState()
 
     // Veri Yükleme Efektleri
     LaunchedEffect(jobId) {
         offersViewModel.loadForJob(jobId)
-        jobDetailViewModel.load(jobId)
+        jobDetailViewModel.observe(jobId)
     }
 
     LaunchedEffect(offers) {
@@ -118,10 +194,59 @@ fun JobDetailScreen(
         if (idsToLoad.isNotEmpty()) {
             usersVm.ensureUsers(idsToLoad)
         }
+
+        // Job completed durumuna geçtiğinde ve review yapılmamışsa dialog göster
+        // Sadece status değiştiğinde kontrol et (her render'da kontrol etme)
+        job?.let { currentJob ->
+            if (currentJob.status == "completed" && 
+                currentJob.status != lastCheckedJobStatus && 
+                currentUid != null && 
+                !checkingReview && 
+                !showReviewDialog) {
+                
+                lastCheckedJobStatus = currentJob.status
+                checkingReview = true
+                val isOwner = currentJob.ownerId == currentUid
+                val isAssignedPro = currentJob.assignedProId == currentUid
+                
+                // Sadece owner veya assigned pro review yapabilir
+                if (isOwner || isAssignedPro) {
+                    val reviewerId = currentUid
+                    val revieweeId = if (isOwner) currentJob.assignedProId else currentJob.ownerId
+                    
+                    if (revieweeId != null) {
+                        reviewsVm.hasReviewed(jobId, reviewerId, revieweeId) { hasReviewed ->
+                            checkingReview = false
+                            if (!hasReviewed) {
+                                reviewTargetId = revieweeId
+                                showReviewDialog = true
+                            }
+                        }
+                    } else {
+                        checkingReview = false
+                    }
+                } else {
+                    checkingReview = false
+                }
+            } else if (currentJob.status != "completed") {
+                // Status completed değilse lastCheckedJobStatus'u sıfırla
+                lastCheckedJobStatus = null
+            }
+        }
+    }
+
+    // Toast mesajları
+    val ctx = LocalContext.current
+    LaunchedEffect(toastMessage) {
+        toastMessage?.let {
+            android.widget.Toast.makeText(ctx, it, android.widget.Toast.LENGTH_SHORT).show()
+            jobDetailViewModel.clearToast()
+        }
     }
 
     val jobOwner = job?.ownerId?.let { userMap[it] }
     val isOwner = job?.ownerId == currentUid
+    val isAssignedPro = job?.assignedProId == currentUid
     val myOffer = offers.firstOrNull { it.proId == currentUid }
 
     // Ekranın ana yapısını (Scaffold) oluşturma
@@ -139,6 +264,8 @@ fun JobDetailScreen(
             JobDetailBottomBar(
                 job = job,
                 isOwner = isOwner,
+                isAssignedPro = isAssignedPro,
+                updating = updating,
                 myOffer = myOffer,
                 onMakeOfferClick = { showOfferDialog = true },
                 onWithdrawOfferClick = {
@@ -163,7 +290,39 @@ fun JobDetailScreen(
                     }
                     targetChatId?.let { navController.navigate("chat/$it") }
                 },
-                onShowOffersClick = { showOffersListDialog = true }
+                onShowOffersClick = { showOffersListDialog = true },
+                onMarkDoneClick = {
+                    jobDetailViewModel.markAwaitingConfirmation(jobId)
+                },
+                onOwnerApproveClick = {
+                    jobDetailViewModel.markCompleted(jobId)
+                    // Job completed durumuna geçtiğinde LaunchedEffect review dialog'u otomatik açacak
+                },
+                onDisputeClick = {
+                    jobDetailViewModel.markDisputed(jobId)
+                },
+                onReviewClick = {
+                    // Manüel review dialog açma (completed durumunda)
+                    job?.let { currentJob ->
+                        if (currentJob.status == "completed" && currentUid != null) {
+                            val isOwner = currentJob.ownerId == currentUid
+                            val isAssignedPro = currentJob.assignedProId == currentUid
+                            if (isOwner || isAssignedPro) {
+                                val revieweeId = if (isOwner) currentJob.assignedProId else currentJob.ownerId
+                                if (revieweeId != null) {
+                                    checkingReview = true
+                                    reviewsVm.hasReviewed(jobId, currentUid, revieweeId) { hasReviewed ->
+                                        checkingReview = false
+                                        if (!hasReviewed) {
+                                            reviewTargetId = revieweeId
+                                            showReviewDialog = true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             )
         }
     ) { innerPadding ->
@@ -180,6 +339,14 @@ fun JobDetailScreen(
                 jobOwner = jobOwner,
                 onPhotoClick = { url -> previewUrl = url }
             )
+            vmError?.let {
+                Text(
+                    text = "Hata: $it",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
         }
     }
 
@@ -247,6 +414,44 @@ fun JobDetailScreen(
                 navController.navigate("chat/$chatId")
             },
             onDismiss = { showOffersListDialog = false }
+        )
+    }
+
+    if (showReviewDialog && job != null && reviewTargetId != null && currentUid != null) {
+        val loading by reviewsVm.loading.collectAsState()
+        val revieweeName = reviewTargetId?.let { userMap[it]?.name ?: "Kullanıcı" } ?: "Kullanıcı"
+        CompleteJobReviewDialog(
+            rating = reviewRating,
+            onRatingChange = { reviewRating = it },
+            comment = reviewComment,
+            onCommentChange = { reviewComment = it },
+            loading = loading,
+            onDismiss = { 
+                showReviewDialog = false
+                reviewTargetId = null
+                reviewRating = 0
+                reviewComment = ""
+            },
+            onSubmit = {
+                if (reviewRating in 1..5) {
+                    val rev = Review(
+                        jobId = jobId,
+                        reviewerId = currentUid,
+                        revieweeId = reviewTargetId!!,
+                        rating = reviewRating,
+                        comment = reviewComment.ifBlank { null }
+                    )
+                    reviewsVm.submit(rev) {
+                        showReviewDialog = false
+                        reviewTargetId = null
+                        reviewRating = 0
+                        reviewComment = ""
+                        // Review yapıldıktan sonra job'u yenile
+                        jobDetailViewModel.load(jobId)
+                    }
+                }
+            },
+            revieweeName = revieweeName
         )
     }
 }
@@ -619,26 +824,24 @@ fun JobPhotosSection(photos: List<String>, onPhotoClick: (String) -> Unit) {
 fun JobDetailBottomBar(
     job: Job?,
     isOwner: Boolean,
+    isAssignedPro: Boolean,
+    updating: Boolean,
     myOffer: Offer?,
     onMakeOfferClick: () -> Unit,
     onWithdrawOfferClick: () -> Unit,
     onMessageClick: () -> Unit,
-    onShowOffersClick: () -> Unit
+    onShowOffersClick: () -> Unit,
+    onMarkDoneClick: () -> Unit,
+    onOwnerApproveClick: () -> Unit,
+    onDisputeClick: () -> Unit,
+    onReviewClick: () -> Unit = {}
 ) {
-    if (job == null || job.status != "open") {
-        // İş kapalıysa veya yükleniyorsa sade bir çubuk göster
+    if (job == null) {
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shadowElevation = 8.dp,
             color = MaterialTheme.colorScheme.surfaceContainer
-        ) {
-            Text(
-                text = if (job == null) "Yükleniyor..." else "Bu iş artık 'açık' durumda değil.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(16.dp)
-            )
-        }
+        ) { Text("Yükleniyor...", modifier = Modifier.padding(16.dp), color = MaterialTheme.colorScheme.onSurfaceVariant) }
         return
     }
 
@@ -655,61 +858,64 @@ fun JobDetailBottomBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             when {
-                // 1. İlan Sahibi
                 isOwner -> {
-                    // İlan sahibi: atama varsa mesajlaşma aç
-                    if (job.assignedProId != null) {
-                        Button(onClick = onMessageClick, modifier = Modifier.fillMaxWidth()) { Text("Mesajlaş") }
-                    } else {
-                        Button(onClick = onShowOffersClick, modifier = Modifier.fillMaxWidth()) { Text("Teklifleri Görüntüle") }
+                    when (job.status) {
+                        "open" -> Button(onClick = onShowOffersClick, modifier = Modifier.fillMaxWidth()) { Text("Teklifleri Görüntüle") }
+                        "assigned", "in_progress" -> Button(onClick = onMessageClick, modifier = Modifier.fillMaxWidth(), enabled = !updating) { Text("Mesajlaş") }
+                        "awaiting_confirmation" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = onOwnerApproveClick, modifier = Modifier.weight(1f), enabled = !updating) {
+                                if (updating) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Onayla")
+                            }
+                            OutlinedButton(onClick = onDisputeClick, modifier = Modifier.weight(1f), enabled = !updating) { Text("İtiraz Et") }
+                        }
+                        "completed" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = onReviewClick, modifier = Modifier.weight(1f)) { Text("Puan Ver") }
+                            OutlinedButton(onClick = onMessageClick, modifier = Modifier.weight(1f)) { Text("Mesajlaş") }
+                        }
+                        else -> Text("Durum: ${job.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-
-                // 2. Kullanıcının Teklifi Var
-                myOffer != null -> {
+                isAssignedPro -> {
+                    when (job.status) {
+                        "assigned", "in_progress" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = onMarkDoneClick, modifier = Modifier.weight(1f), enabled = !updating) {
+                                if (updating) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp) else Text("Tamamlandı Bildir")
+                            }
+                            OutlinedButton(onClick = onMessageClick, modifier = Modifier.weight(1f), enabled = !updating) { Text("Mesajlaş") }
+                        }
+                        "awaiting_confirmation" -> Text("İşveren onayı bekleniyor", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        "completed" -> Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                            Button(onClick = onReviewClick, modifier = Modifier.weight(1f)) { Text("Puan Ver") }
+                            OutlinedButton(onClick = onMessageClick, modifier = Modifier.weight(1f)) { Text("Mesajlaş") }
+                        }
+                        else -> Text("Durum: ${job.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                myOffer != null && job.status == "open" -> {
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Text(
-                            "Teklifin (${myOffer.status}):",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            "${myOffer.amount} TL",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Teklifin (${myOffer.status}):", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("${myOffer.amount} TL", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        if (myOffer.status == "pending") {
-                            OutlinedButton(onClick = onWithdrawOfferClick) { Text("Geri Çek") }
-                        }
-                        // Usta, teklif aşamasındayken de iş sahibiyle yazışabilsin
+                        if (myOffer.status == "pending") { OutlinedButton(onClick = onWithdrawOfferClick) { Text("Geri Çek") } }
                         Button(onClick = onMessageClick) { Text("Mesajlaş") }
                     }
                 }
-
-                // 3. Kullanıcı Teklif Verebilir (En "WOW" durum)
                 else -> {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            "İş Fiyatı:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        val priceText = job.price?.let { "$it TL" } ?: "Belirtilmemiş"
-                        Text(
-                            priceText,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                    // Açık iş ve teklif vermemiş kullanıcı
+                    if (job.status == "open") {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text("İş Fiyatı:", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val priceText = job.price?.let { "$it TL" } ?: "Belirtilmemiş"
+                            Text(priceText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        }
+                        Button(onClick = onMakeOfferClick) { Text("Teklif Ver") }
+                    } else {
+                        Text("Durum: ${job.status}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Button(onClick = onMakeOfferClick) { Text("Teklif Ver") }
                 }
             }
         }

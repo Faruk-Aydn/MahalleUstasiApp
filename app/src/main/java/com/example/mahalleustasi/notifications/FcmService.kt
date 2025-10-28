@@ -20,6 +20,9 @@ import com.example.mahalleustasi.R
 import android.app.PendingIntent
 import android.content.Intent
 import com.example.mahalleustasi.MainActivity
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+import android.Manifest
 
 @AndroidEntryPoint
 class FcmService : FirebaseMessagingService() {
@@ -84,8 +87,23 @@ class FcmService : FirebaseMessagingService() {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pendingIntent)
 
-        with(NotificationManagerCompat.from(this)) {
-            notify((System.currentTimeMillis() % 100000).toInt(), builder.build())
+        // Android 13+ (API 33+) için POST_NOTIFICATIONS iznini kontrol et
+        val hasPermission = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Android 13 öncesi için izin gerekmez
+        }
+
+        if (hasPermission) {
+            try {
+                with(NotificationManagerCompat.from(this)) {
+                    notify((System.currentTimeMillis() % 100000).toInt(), builder.build())
+                }
+            } catch (e: SecurityException) {
+                Log.w("FcmService", "Failed to show notification: permission denied", e)
+            }
+        } else {
+            Log.w("FcmService", "POST_NOTIFICATIONS permission not granted, notification not shown")
         }
     }
 }

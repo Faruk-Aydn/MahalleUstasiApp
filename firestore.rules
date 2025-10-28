@@ -11,7 +11,12 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn();
-      allow write: if signedIn() && request.auth.uid == uid;
+      // Kullanıcının kendi profilini tam yazmasına izin ver
+      // Ayrıca, ortalama puan alanlarını herkes (girişli) güncelleyebilsin: ratingAvg, ratingCount
+      allow write: if signedIn() && (
+        request.auth.uid == uid ||
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['ratingAvg', 'ratingCount'])
+      );
     }
  
     // Posts koleksiyonu: anasayfa akışı için gereklidir
@@ -24,7 +29,20 @@ service cloud.firestore {
     match /jobs/{jobId} {
       allow read: if true;
       allow create: if signedIn();
-      allow update, delete: if signedIn() && request.auth.uid == resource.data.ownerId;
+      // Güncellemeler:
+      // - İş sahibi her alanı güncelleyebilir (mevcut kural)
+      // - Atanan usta SADECE status alanını awaiting_confirmation yapabilir
+      allow update, delete: if signedIn() && (
+        // İş sahibi
+        request.auth.uid == resource.data.ownerId ||
+        // Atanan usta: yalnızca status -> awaiting_confirmation ve sadece bu alan değişebilir
+        (
+          resource.data.assignedProId == request.auth.uid &&
+          resource.data.status in ['assigned', 'in_progress'] &&
+          request.resource.data.status == 'awaiting_confirmation' &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['status'])
+        )
+      );
     }
 
     match /job_offers/{offerId} {
@@ -62,8 +80,7 @@ service cloud.firestore {
       // Sohbet kimliği iş kimliği olarak kullanılıyor
       // Erişim yalnızca iş sahibi veya atanan usta içindir
       allow read, write: if signedIn() && (
-        let job = getJob(chatId);
-        job.ownerId == request.auth.uid || job.assignedProId == request.auth.uid
+        getJob(chatId).ownerId == request.auth.uid || getJob(chatId).assignedProId == request.auth.uid
       );
     }
   }

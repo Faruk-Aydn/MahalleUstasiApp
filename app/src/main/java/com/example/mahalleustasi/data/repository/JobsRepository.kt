@@ -71,6 +71,18 @@ class JobsRepository {
         return doc.toObject(Job::class.java)?.copy(id = doc.id)
     }
 
+    fun listenJob(jobId: String, onUpdate: (Job?) -> Unit, onError: (Exception) -> Unit = {}): ListenerRegistration {
+        return db.collection("jobs").document(jobId)
+            .addSnapshotListener { doc, err ->
+                if (err != null) {
+                    onError(err)
+                    return@addSnapshotListener
+                }
+                val job = doc?.toObject(Job::class.java)?.copy(id = doc.id)
+                onUpdate(job)
+            }
+    }
+
     suspend fun listOwnedJobs(ownerId: String, status: String? = null, limit: Long = 100): List<Job> {
         var q: Query = db.collection("jobs").whereEqualTo("ownerId", ownerId)
         if (!status.isNullOrBlank()) q = q.whereEqualTo("status", status)
@@ -95,7 +107,16 @@ class JobsRepository {
         // Kullanıcı adını users koleksiyonundan oku (varsa)
         val ownerDoc = db.collection("users").document(ownerId).get().await()
         val ownerName = ownerDoc.getString("name")
-        val data = job.copy(ownerId = ownerId, ownerName = ownerName, id = ref.id)
+        val data = job.copy(
+            ownerId = ownerId, 
+            ownerName = ownerName, 
+            id = ref.id,
+            status = "open",
+            createdAt = System.currentTimeMillis(),
+            photoUrls = emptyList(),
+            scheduledAt = null,
+            assignedProId = null
+        )
         ref.set(data).await()
         return ref.id
     }

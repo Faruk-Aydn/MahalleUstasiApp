@@ -3,6 +3,8 @@ package com.example.mahalleustasi.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
@@ -170,46 +172,51 @@ fun JobsListScreen(navController: NavController, viewModel: JobsViewModel) {
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Filtre alanları artık AppBar'daki filtre ikonu ile açılan ModalBottomSheet içerisinde
+                    item { Spacer(modifier = Modifier.height(0.dp)) }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    if (loading) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                    when {
+                        loading -> {
+                            item {
+                                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    CircularProgressIndicator()
+                                }
+                            }
                         }
-                    } else if (jobs.isEmpty()) {
-                        EmptyState(title = "Henüz iş bulunamadı", description = "İlk işi sen oluştur!")
-                    } else {
-                        jobs.forEach { job ->
-                            Card(
-                                shape = RoundedCornerShape(10.dp),
-                                elevation = CardDefaults.cardElevation(2.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 6.dp)
-                                    .clickable { navController.navigate("job_detail/${job.id}") }
-                            ) {
-                                Column(modifier = Modifier.padding(12.dp)) {
-                                    Text(text = job.title, style = MaterialTheme.typography.titleMedium)
-                                    Text(text = job.description, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        if (job.status != "open") {
-                                            Text(
-                                                text = "Durum: ${job.status}",
-                                                color = Color(0xFFD32F2F),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                modifier = Modifier.padding(end = 8.dp)
-                                            )
-                                        }
-                                        job.location?.address?.let { addr ->
-                                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF1976D2))
-                                            Text(text = addr, style = MaterialTheme.typography.bodySmall)
+                        jobs.isEmpty() -> {
+                            item { EmptyState(title = "Henüz iş bulunamadı", description = "İlk işi sen oluştur!") }
+                        }
+                        else -> {
+                            items(jobs) { job ->
+                                Card(
+                                    shape = RoundedCornerShape(10.dp),
+                                    elevation = CardDefaults.cardElevation(2.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 6.dp)
+                                        .clickable { navController.navigate("job_detail/${job.id}") }
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(text = job.title, style = MaterialTheme.typography.titleMedium)
+                                        Text(text = job.description, style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (job.status != "open") {
+                                                Text(
+                                                    text = "Durum: ${job.status}",
+                                                    color = Color(0xFFD32F2F),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    modifier = Modifier.padding(end = 8.dp)
+                                                )
+                                            }
+                                            job.location?.address?.let { addr ->
+                                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF1976D2))
+                                                Text(text = addr, style = MaterialTheme.typography.bodySmall)
+                                            }
                                         }
                                     }
                                 }
@@ -217,17 +224,19 @@ fun JobsListScreen(navController: NavController, viewModel: JobsViewModel) {
                         }
                     }
 
-                    error?.let {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(top = 8.dp)
-                        ) {
-                            Icon(Icons.Default.Error, contentDescription = null, tint = Color.Red)
-                            Text("Hata: $it", color = Color.Red, modifier = Modifier.padding(start = 4.dp))
-                            OutlinedButton(
-                                onClick = { viewModel.refresh() },
-                                modifier = Modifier.padding(start = 8.dp)
-                            ) { Text("Tekrar Dene") }
+                    error?.let { err ->
+                        item {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 8.dp)
+                            ) {
+                                Icon(Icons.Default.Error, contentDescription = null, tint = Color.Red)
+                                Text("Hata: $err", color = Color.Red, modifier = Modifier.padding(start = 4.dp))
+                                OutlinedButton(
+                                    onClick = { viewModel.refresh() },
+                                    modifier = Modifier.padding(start = 8.dp)
+                                ) { Text("Tekrar Dene") }
+                            }
                         }
                     }
                 }

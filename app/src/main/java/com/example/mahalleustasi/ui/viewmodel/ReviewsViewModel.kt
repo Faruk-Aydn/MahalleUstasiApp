@@ -36,4 +36,12 @@ class ReviewsViewModel @Inject constructor(
     fun list(userId: String, onLoaded: (List<Review>) -> Unit) {
         viewModelScope.launch { runCatching { repo.listReviewsForUser(userId) }.onSuccess(onLoaded) }
     }
+
+    fun hasReviewed(jobId: String, reviewerId: String, revieweeId: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            runCatching { repo.hasUserReviewedJob(jobId, reviewerId, revieweeId) }
+                .onSuccess(onResult)
+                .onFailure { _error.value = it.message }
+        }
+    }
 }
