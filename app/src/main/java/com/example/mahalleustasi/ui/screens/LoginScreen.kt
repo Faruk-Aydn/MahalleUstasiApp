@@ -3,6 +3,7 @@ package com.example.mahalleustasi.ui.screens
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +23,59 @@ import com.example.mahalleustasi.R
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+
+@Composable
+fun AuthGateScreen(
+    navController: NavController,
+    authViewModel: AuthViewModel = hiltViewModel(),
+    gateVm: ProfileGateViewModel = hiltViewModel()
+) {
+    val context = LocalContext.current
+    val currentUser by authViewModel.firebaseUser.collectAsState()
+    val needsProfile by gateVm.needsProfile.collectAsState(null)
+    var navigated by remember { mutableStateOf(false) }
+
+    // Kullanıcı yoksa login ekranına gönder
+    LaunchedEffect(currentUser) {
+        if (!navigated) {
+            if (currentUser == null) {
+                navigated = true
+                navController.navigate("login") {
+                    popUpTo(0)
+                }
+            } else {
+                // Kullanıcı var, profil durumu kontrol edilsin
+                gateVm.check()
+            }
+        }
+    }
+
+    // Profil gerekiyor mu bilgisine göre home veya profile'a yönlendir
+    LaunchedEffect(needsProfile) {
+        if (!navigated && currentUser != null && needsProfile != null) {
+            navigated = true
+            if (needsProfile == true) {
+                navController.navigate("profile") {
+                    popUpTo(0)
+                }
+            } else {
+                navController.navigate("home") {
+                    popUpTo(0)
+                }
+            }
+        }
+    }
+
+    // Sadece basit bir loading ekranı göster
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
 
 @Composable
 fun LoginScreen(navController: NavController, viewModel: AuthViewModel = hiltViewModel()) {

@@ -41,13 +41,17 @@ import com.google.firebase.auth.ktx.auth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MyJobsScreen(navController: NavController, viewModel: MyJobsViewModel = hiltViewModel()) {
+fun MyJobsScreen(
+    navController: NavController,
+    viewModel: MyJobsViewModel = hiltViewModel(),
+    initialTab: Int = 0
+) {
     val owned by viewModel.ownedJobs.collectAsState()
     val assigned by viewModel.assignedJobs.collectAsState()
     val loading by viewModel.loading.collectAsState()
     val error by viewModel.error.collectAsState()
 
-    var selectedTab by remember { mutableStateOf(0) }
+    var selectedTab by remember { mutableStateOf(initialTab) }
     // Auth kullanıcısı hazır olduğunda yükle
     val uid = Firebase.auth.currentUser?.uid
     LaunchedEffect(uid) {

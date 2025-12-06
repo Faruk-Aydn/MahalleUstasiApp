@@ -42,6 +42,20 @@ class OffersRepository : OffersRepositoryContract {
 
     override suspend fun submitOffer(offer: Offer): String {
         val proId = offer.proId.ifEmpty { auth.currentUser?.uid ?: throw IllegalStateException("Not logged in") }
+
+        // Aynı ustanın aynı işe aktif (pending/accepted) bir teklifi varsa yeni teklif oluşturma
+        val existingSnap = db.collection("job_offers")
+            .whereEqualTo("jobId", offer.jobId)
+            .whereEqualTo("proId", proId)
+            .whereIn("status", listOf("pending", "accepted"))
+            .limit(1)
+            .get()
+            .await()
+
+        if (!existingSnap.isEmpty) {
+            throw IllegalStateException("Bu iş için zaten aktif bir teklifin var. Önce mevcut teklifini geri çekmelisin.")
+        }
+
         // Belge id'sini önce oluştur ve id alanını dokümana yaz
         val ref = db.collection("job_offers").document()
         ref.set(offer.copy(proId = proId, id = ref.id)).await()
