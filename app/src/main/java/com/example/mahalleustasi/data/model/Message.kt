@@ -3,6 +3,7 @@ package com.example.mahalleustasi.data.model
 data class Message(
     val id: String = "",
     val chatId: String = "",
+    val jobId: String = "",
     val senderId: String = "",
     val receiverId: String? = null,
     val text: String? = null,

@@ -17,12 +17,20 @@ class MessagesRepository {
     private fun chatMessagesRef(chatId: String) =
         db.collection("messages").document(chatId).collection("chatMessages")
 
+    private fun extractJobIdFromChatId(chatId: String): String {
+        // Beklenen format: job_{jobId}_{uidA}_{uidB}
+        val parts = chatId.split("_")
+        return if (parts.size >= 2 && parts[0] == "job") parts[1] else ""
+    }
+
     suspend fun sendTextMessage(chatId: String, text: String, receiverId: String? = null): String {
         val senderId = auth.currentUser?.uid ?: throw IllegalStateException("Not logged in")
         val docRef = chatMessagesRef(chatId).document()
+        val jobId = extractJobIdFromChatId(chatId)
         val msg = Message(
             id = docRef.id,
             chatId = chatId,
+            jobId = jobId,
             senderId = senderId,
             receiverId = receiverId,
             text = text
@@ -40,9 +48,11 @@ class MessagesRepository {
     suspend fun sendImageMessage(chatId: String, imageUrl: String, receiverId: String? = null): String {
         val senderId = auth.currentUser?.uid ?: throw IllegalStateException("Not logged in")
         val docRef = chatMessagesRef(chatId).document()
+        val jobId = extractJobIdFromChatId(chatId)
         val msg = Message(
             id = docRef.id,
             chatId = chatId,
+            jobId = jobId,
             senderId = senderId,
             receiverId = receiverId,
             imageUrl = imageUrl

@@ -10,6 +10,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import android.util.Log
 import kotlinx.coroutines.launch
 
 @HiltViewModel
@@ -42,7 +43,10 @@ class ChatViewModel @Inject constructor(
     fun sendText(chatId: String, text: String) {
         viewModelScope.launch {
             runCatching { repo.sendTextMessage(chatId, text) }
-                .onFailure { _error.value = it.message }
+                .onFailure {
+                    _error.value = it.message
+                    Log.d("ChatViewModel", "sendText error", it)
+                }
         }
     }
 
@@ -51,7 +55,10 @@ class ChatViewModel @Inject constructor(
             runCatching {
                 val url = repo.uploadChatImage(chatId, bytes, fileName)
                 repo.sendImageMessage(chatId, url)
-            }.onFailure { _error.value = it.message }
+            }.onFailure {
+                _error.value = it.message
+                Log.d("ChatViewModel", "sendImage error", it)
+            }
         }
     }
 
