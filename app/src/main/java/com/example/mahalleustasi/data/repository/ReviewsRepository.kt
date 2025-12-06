@@ -24,6 +24,13 @@ class ReviewsRepository {
         return snap.documents.mapNotNull { it.toObject(Review::class.java) }
     }
 
+    suspend fun listReviewsByReviewer(reviewerId: String): List<Review> {
+        val snap = db.collection("reviews")
+            .whereEqualTo("reviewerId", reviewerId)
+            .get().await()
+        return snap.documents.mapNotNull { it.toObject(Review::class.java) }
+    }
+
     suspend fun hasUserReviewedJob(jobId: String, reviewerId: String, revieweeId: String): Boolean {
         val snap = db.collection("reviews")
             .whereEqualTo("jobId", jobId)

@@ -3,18 +3,11 @@ package com.example.mahalleustasi.ui.screens
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -22,62 +15,55 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.RateReview
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.example.mahalleustasi.data.model.User // User modelinizin burada olduğunu varsayıyoruz
+import com.example.mahalleustasi.data.model.Review
+import com.example.mahalleustasi.data.model.User
+import com.example.mahalleustasi.ui.theme.* // Tema entegrasyonu
 import com.example.mahalleustasi.ui.viewmodel.ProfileViewModel
+import com.example.mahalleustasi.ui.viewmodel.ReviewsViewModel
+import com.example.mahalleustasi.ui.viewmodel.UsersViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(navController: NavController) {
     val vm: ProfileViewModel = hiltViewModel()
+    val reviewsVm: ReviewsViewModel = hiltViewModel()
+    val usersVm: UsersViewModel = hiltViewModel()
     val state by vm.state.collectAsState()
     val me = state.user
     val loading = state.isLoading
     val error = state.error
 
+    var reviews by remember { mutableStateOf<List<Review>>(emptyList()) }
+
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    var isEditing by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        vm.loadMe()
-    }
+    LaunchedEffect(Unit) { vm.loadMe() }
 
-    // `me` nesnesi değiştiğinde `remember` state'lerini güncelle
     LaunchedEffect(me) {
         me?.let {
             name = it.name
@@ -85,19 +71,30 @@ fun ProfileScreen(navController: NavController) {
         }
     }
 
-    // Görsel seçici
-    val imagePicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri ->
-        uri?.let { vm.uploadProfileImage(it) }
+    LaunchedEffect(me?.uid) {
+        val uid = me?.uid ?: return@LaunchedEffect
+        reviewsVm.list(uid) { loaded -> reviews = loaded }
     }
 
+    // Değerlendirmeyi yapan kullanıcıların isimlerini yükle (reviewerId)
+    LaunchedEffect(reviews) {
+        val reviewerIds = reviews.mapNotNull { it.reviewerId }.filter { it.isNotBlank() }.toSet()
+        if (reviewerIds.isNotEmpty()) {
+            usersVm.ensureUsers(reviewerIds)
+        }
+    }
+
+    val imagePicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { vm.uploadProfileImage(it) } }
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Profilim", fontWeight = FontWeight.SemiBold) },
+                title = { Text("Profilim", fontWeight = FontWeight.Bold, color = MahalleTextPrimary) },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -106,13 +103,13 @@ fun ProfileScreen(navController: NavController) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            contentPadding = PaddingValues(bottom = 24.dp)
         ) {
-            // Yükleniyor durumu (eğer kullanıcı verisi henüz gelmediyse)
             if (loading && me == null) {
                 item {
                     Box(modifier = Modifier.fillParentMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                 }
                 return@LazyColumn
@@ -129,52 +126,53 @@ fun ProfileScreen(navController: NavController) {
                 return@LazyColumn
             }
 
-            // 1. Profil Başlığı (Avatar, İsim, Foto Değiştirme)
+            // 1. Profil Kartı (Avatar, İsim)
             item {
-                ProfileHeader(
+                ProfileHeaderCard(
                     user = me,
                     onEditPhotoClick = { imagePicker.launch("image/*") }
                 )
             }
 
             // 2. İstatistikler
-            if (me.ratingAvg != null || me.ratingCount != null) {
-                item {
-                    ProfileStats(
-                        ratingAvg = me.ratingAvg,
-                        ratingCount = me.ratingCount
-                    )
-                }
-                item {
-                    Divider(modifier = Modifier.padding(vertical = 16.dp, horizontal = 16.dp))
-                }
+            item {
+                ProfileStatsSection(
+                    ratingAvg = me.ratingAvg,
+                    ratingCount = me.ratingCount
+                )
             }
 
             // 3. Bilgileri Düzenleme Formu
             item {
-                EditForm(
+                ModernEditForm(
                     name = name,
                     onNameChange = { name = it },
                     phone = phone,
                     onPhoneChange = { phone = it },
-                    isLoading = loading, // 'Kaydediliyor' durumu için
+                    isLoading = loading,
                     localError = localError,
                     apiError = error,
+                    isEditing = isEditing,
+                    onToggleEditing = { isEditing = !isEditing },
                     onSaveClick = {
                         if (name.isBlank()) {
                             localError = "Ad Soyad zorunludur."
                         } else {
                             localError = null
                             vm.save(name = name, phone = phone.ifBlank { null })
+                            isEditing = false // Kaydettikten sonra düzenlemeyi kapat
                         }
                     }
                 )
             }
 
-            // 4. Diğer Eylemler
+            // 4. Değerlendirmeler
             item {
-                NavigationActions(
-                    onMyJobsClick = { navController.navigate("my_jobs") }
+                Spacer(modifier = Modifier.height(16.dp))
+                ProfileReviewsSection(
+                    navController = navController,
+                    reviews = reviews,
+                    usersVm = usersVm
                 )
             }
         }
@@ -182,148 +180,169 @@ fun ProfileScreen(navController: NavController) {
 }
 
 /**
- * Avatar, isim ve fotoğraf düzenleme butonunu gösteren başlık.
+ * Avatar, isim ve fotoğrafı modern bir kart içinde gösterir.
  */
 @Composable
-fun ProfileHeader(user: User, onEditPhotoClick: () -> Unit) {
-    Column(
+fun ProfileHeaderCard(user: User, onEditPhotoClick: () -> Unit) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 24.dp, bottom = 16.dp, start = 16.dp, end = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(16.dp),
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp
     ) {
-        // Avatar ve Düzenle Butonu
-        Box(
-            modifier = Modifier.size(120.dp),
-            contentAlignment = Alignment.BottomEnd
+        Column(
+            modifier = Modifier.padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            val avatarUrl = user.photoUrl
-            val initials = user.name.firstOrNull()?.uppercase() ?: "?"
+            // Avatar ve Edit Butonu
+            Box(
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                val avatarUrl = user.photoUrl
+                val initials = user.name.firstOrNull()?.uppercase() ?: "?"
 
-            if (!avatarUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = avatarUrl,
-                    contentDescription = "Profil Fotoğrafı",
-                    contentScale = ContentScale.Crop,
+                Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .size(110.dp)
+                        .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
                         .clip(CircleShape)
-                        .clickable { onEditPhotoClick() }
-                )
-            } else {
-                // Yedek Baş Harf Görünümü
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clickable { onEditPhotoClick() }
+                        .background(MaterialTheme.colorScheme.primaryContainer)
+                        .clickable { onEditPhotoClick() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
+                    if (!avatarUrl.isNullOrBlank()) {
+                        AsyncImage(
+                            model = avatarUrl,
+                            contentDescription = "Profil Fotoğrafı",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
                         Text(
                             text = initials,
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            style = MaterialTheme.typography.displayMedium,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                // Düzenle Butonu
+                Surface(
+                    onClick = onEditPhotoClick,
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primary,
+                    border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.surface),
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Fotoğrafı Değiştir",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
 
-            // Düzenle İkon Butonu
-            IconButton(
-                onClick = onEditPhotoClick,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .size(36.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Fotoğrafı Değiştir",
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
-
-        // İsim ve Telefon
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = user.name,
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            user.phone?.takeIf { it.isNotBlank() }?.let {
+            // İsim ve Telefon
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
+                    text = user.name,
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MahalleTextPrimary
                 )
+                if (!user.phone.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = user.phone,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MahalleTextSecondary
+                    )
+                }
             }
         }
     }
 }
 
 /**
- * Puan ve Değerlendirme sayısı gibi istatistikleri gösterir.
+ * Puan ve Değerlendirme sayılarını renkli kutucuklarda gösterir.
  */
 @Composable
-fun ProfileStats(ratingAvg: Double?, ratingCount: Int?) {
+fun ProfileStatsSection(ratingAvg: Double?, ratingCount: Int?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        StatItem(
-            icon = Icons.Default.Star,
-            label = "Puan",
-            value = ratingAvg?.let { String.format("%.1f", it) } ?: "-"
+        ModernStatCard(
+            icon = Icons.Rounded.Star,
+            label = "Ortalama Puan",
+            value = ratingAvg?.let { String.format("%.1f", it) } ?: "-",
+            color = MahalleOrange, // Turuncu yıldız
+            modifier = Modifier.weight(1f)
         )
-        StatItem(
+        ModernStatCard(
             icon = Icons.Default.RateReview,
             label = "Değerlendirme",
-            value = ratingCount?.toString() ?: "0"
+            value = ratingCount?.toString() ?: "0",
+            color = MaterialTheme.colorScheme.primary, // Teal
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
-/**
- * ProfileStats içinde kullanılan küçük bir istatistik bileşeni.
- */
 @Composable
-fun StatItem(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+fun ModernStatCard(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color,
+    modifier: Modifier
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(28.dp)
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(
+            modifier = Modifier.padding(16.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MahalleTextPrimary
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MahalleTextSecondary
+            )
+        }
     }
 }
 
 /**
- * İsim ve telefonun düzenlendiği form bölümü.
+ * Modern form yapısı.
  */
 @Composable
-fun EditForm(
+fun ModernEditForm(
     name: String,
     onNameChange: (String) -> Unit,
     phone: String,
@@ -331,87 +350,244 @@ fun EditForm(
     isLoading: Boolean,
     localError: String?,
     apiError: String?,
+    isEditing: Boolean,
+    onToggleEditing: () -> Unit,
     onSaveClick: () -> Unit
 ) {
-    Column(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp
     ) {
-        Text(
-            text = "Kişisel Bilgiler",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-        OutlinedTextField(
-            value = name,
-            onValueChange = onNameChange,
-            label = { Text("Ad Soyad") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Ad") }
-        )
-        OutlinedTextField(
-            value = phone,
-            onValueChange = onPhoneChange,
-            label = { Text("Telefon") },
-            modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Phone, contentDescription = "Telefon") }
-        )
-
-        // Hata mesajları
-        localError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-        apiError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-        }
-
-        // Kaydet Butonu
-        Button(
-            onClick = onSaveClick,
-            enabled = !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp,
-                    color = MaterialTheme.colorScheme.onPrimary
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Kişisel Bilgiler",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MahalleTextPrimary
                 )
-            } else {
-                Text("Değişiklikleri Kaydet")
+                TextButton(onClick = onToggleEditing) {
+                    Text(
+                        text = if (isEditing) "Vazgeç" else "Düzenle",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = name,
+                onValueChange = onNameChange,
+                label = { Text("Ad Soyad") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                singleLine = true,
+                enabled = isEditing,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color.LightGray
+                )
+            )
+
+            OutlinedTextField(
+                value = phone,
+                onValueChange = onPhoneChange,
+                label = { Text("Telefon") },
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                singleLine = true,
+                enabled = isEditing,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = Color.LightGray
+                )
+            )
+
+            if (isEditing) {
+                Text(
+                    text = "Bu bilgiler diğer kullanıcılar tarafından görülebilir.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MahalleTextSecondary
+                )
+            }
+
+            // Hata mesajları
+            if (localError != null || apiError != null) {
+                Surface(
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = localError ?: apiError ?: "",
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+
+            // Kaydet Butonu (Sadece düzenleme modunda görünür)
+            if (isEditing) {
+                Button(
+                    onClick = onSaveClick,
+                    enabled = !isLoading,
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
+                    } else {
+                        Text("Değişiklikleri Kaydet", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
     }
 }
 
-/**
- * Diğer sayfalara giden navigasyon butonları.
- */
 @Composable
-fun NavigationActions(onMyJobsClick: () -> Unit) {
+fun ProfileReviewsSection(
+    navController: NavController,
+    reviews: List<Review>,
+    usersVm: UsersViewModel
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Divider()
-        Spacer(modifier = Modifier.height(4.dp))
-        
         Text(
-            text = "Diğer Eylemler",
+            text = "Kullanıcı Değerlendirmeleri",
             style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
+            fontWeight = FontWeight.Bold,
+            color = MahalleTextPrimary
         )
-        FilledTonalButton(
-            onClick = onMyJobsClick,
-            modifier = Modifier.fillMaxWidth()
+
+        if (reviews.isEmpty()) {
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.LightGray.copy(0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Henüz değerlendirme yapılmamış.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MahalleTextSecondary,
+                    modifier = Modifier.padding(16.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        } else {
+            reviews.forEach { review ->
+                val reviewerId = review.reviewerId
+                val reviewerName = usersVm.displayName(reviewerId) ?: "Kullanıcı"
+                ModernReviewItem(
+                    review = review,
+                    reviewerId = reviewerId,
+                    reviewerName = reviewerName,
+                    navController = navController
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ModernReviewItem(
+    review: Review,
+    reviewerId: String,
+    reviewerName: String,
+    navController: NavController
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 1.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("İlanlarım")
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Yıldızlar
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    repeat(5) { index ->
+                        val icon = if (index < review.rating) Icons.Rounded.Star else Icons.Default.Star // Dolu veya boş yıldız eklenebilir
+                        val tint = if (index < review.rating) MahalleOrange else Color.LightGray.copy(0.4f)
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = tint,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+
+                // Tarih
+                val dateText = remember(review.createdAt) {
+                    try {
+                        val formatter = SimpleDateFormat("dd MMM yyyy", Locale("tr"))
+                        formatter.format(Date(review.createdAt))
+                    } catch (e: Exception) { "" }
+                }
+                if (dateText.isNotBlank()) {
+                    Text(
+                        text = dateText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MahalleTextSecondary
+                    )
+                }
+            }
+
+            // Değerlendiren kullanıcı adı
+            if (reviewerId.isNotBlank()) {
+                Text(
+                    text = "Değerlendiren: $reviewerName",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MahalleTextPrimary,
+                    modifier = Modifier.clickable {
+                        navController.navigate("public_profile/$reviewerId")
+                    }
+                )
+            }
+
+            if (!review.comment.isNullOrBlank()) {
+                Text(
+                    text = review.comment,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MahalleTextPrimary
+                )
+            } else {
+                Text(
+                    text = "Yorum yazılmamış.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MahalleTextSecondary.copy(0.6f),
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                )
+            }
         }
     }
 }
