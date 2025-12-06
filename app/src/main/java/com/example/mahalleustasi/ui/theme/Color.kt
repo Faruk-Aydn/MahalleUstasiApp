@@ -2,21 +2,29 @@ package com.example.mahalleustasi.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// --- Ana Marka Renkleri ---
+val MahalleTeal = Color(0xFF00695C)       // Ana renk (Primary)
+val MahalleTealDark = Color(0xFF004D40)   // Gradient veya koyu mod için
+val MahalleOrange = Color(0xFFFFB74D)     // Vurgu rengi (Secondary)
+val MahalleOrangeDark = Color(0xFFEF6C00) // Turuncu üzerindeki koyu metinler için
 
+// --- Arkaplan ve Zemin ---
+val MahalleBackground = Color(0xFFF7F9FC) // O sevdiğin açık gri-mavi zemin
+val MahalleSurface = Color.White          // Kartlar ve alt barlar için
 
-val DarkBlue = Color(0xFF0D47A1) // Primary
-val LightBlue = Color(0xFFE3F2FD) // Primary Container
-val White = Color(0xFFFFFFFF)
-val Black = Color(0xFF000000)
-val DarkGrey = Color(0xFF424242) // On Surface
-val MediumGrey = Color(0xFF757575) // On Surface Variant
-val LightGrey = Color(0xFFF5F5F5) // Surface
+// --- Metin Renkleri ---
+val MahalleTextPrimary = Color(0xFF1A1C1E)   // Koyu başlıklar
+val MahalleTextSecondary = Color(0xFF546E7A) // Açıklama metinleri (Gri-Mavi)
 
-// Material 3 örnek şema renkleri (Theme.kt tarafından kullanılıyor)
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// --- Durum (Status) Renkleri ---
+// Bekliyor
+val StatusPendingBg = Color(0xFFFFF8E1)
+val StatusPendingText = Color(0xFFF57C00)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Aktif / Atandı
+val StatusActiveBg = Color(0xFFE0F2F1)
+val StatusActiveText = MahalleTeal
+
+// Tamamlandı
+val StatusCompletedBg = Color(0xFFE8F5E9)
+val StatusCompletedText = Color(0xFF2E7D32)
