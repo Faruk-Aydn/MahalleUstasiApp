@@ -149,30 +149,30 @@ MAPS_API_KEY=sizin_api_anahtarınız
 
 ### Giriş ve Ana Ekranlar
 <p>
-  <img src="assets/login.png" alt="Giriş Ekranı" width="250"/>
-  <img src="assets/ana_ekran.png" alt="Ana Ekran" width="250"/>
-  <img src="assets/isler_listesi.png" alt="İşler Listesi" width="250"/>
+  <img src="app/src/main/assets/login.png" alt="Giriş Ekranı" width="250"/>
+  <img src="app/src/main/assets/ana_ekran.png" alt="Ana Ekran" width="250"/>
+  <img src="app/src/main/assets/isler_listesi.png" alt="İşler Listesi" width="250"/>
 </p>
 
 ### İş Detayları ve İşlemler
 <p>
-  <img src="assets/is_ekle.png" alt="İş Ekle" width="250"/>
-  <img src="assets/gelen_teklif_onaylama.png" alt="Gelen Teklif Onaylama" width="250"/>
-  <img src="assets/is_bitimi_onaylama.png" alt="İş Bitimi Onaylama" width="250"/>
+  <img src="app/src/main/assets/is_ekle.png" alt="İş Ekle" width="250"/>
+  <img src="app/src/main/assets/gelen_teklif_onaylama.png" alt="Gelen Teklif Onaylama" width="250"/>
+  <img src="app/src/main/assets/is_bitimi_onaylama.png" alt="İş Bitimi Onaylama" width="250"/>
 </p>
 
 ### Profil ve İletişim
 <p>
-  <img src="assets/Profil.png" alt="Profil" width="250"/>
-  <img src="assets/degerlendirme.png" alt="Değerlendirme" width="250"/>
-  <img src="assets/digerKullanicilarinGorduguProfil.png" alt="Diğer Kullanıcıların Gördüğü Profil" width="250"/>
+  <img src="app/src/main/assets/Profil.png" alt="Profil" width="250"/>
+  <img src="app/src/main/assets/degerlendirme.png" alt="Değerlendirme" width="250"/>
+  <img src="app/src/main/assets/digerKullanicilarinGorduguProfil.png" alt="Diğer Kullanıcıların Gördüğü Profil" width="250"/>
 </p>
 
 ### Mesajlaşma ve Teklifler
 <p>
-  <img src="assets/mesaj_ekrani.png" alt="Mesaj Ekranı" width="250"/>
-  <img src="assets/teklif_inceleme.png" alt="Teklif İnceleme" width="250"/>
-  <img src="assets/tekliflerim.png" alt="Tekliflerim" width="250"/>
+  <img src="app/src/main/assets/mesaj_ekrani.png" alt="Mesaj Ekranı" width="250"/>
+  <img src="app/src/main/assets/teklif_inceleme.png" alt="Teklif İnceleme" width="250"/>
+  <img src="app/src/main/assets/tekliflerim.png" alt="Tekliflerim" width="250"/>
 </p>
 
 </div>
