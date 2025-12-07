@@ -163,7 +163,7 @@ MAPS_API_KEY=sizin_api_anahtarınız
 
 ### Profil ve İletişim
 <p>
-  <img src="app/src/main/assets/Profil.png" alt="Profil" width="250"/>
+  <img src="app/src/main/assets/profil.png" alt="Profil" width="250"/>
   <img src="app/src/main/assets/degerlendirme.png" alt="Değerlendirme" width="250"/>
   <img src="app/src/main/assets/digerKullanicilarinGorduguProfil.png" alt="Diğer Kullanıcıların Gördüğü Profil" width="250"/>
 </p>
