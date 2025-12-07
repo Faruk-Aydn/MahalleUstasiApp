@@ -24,7 +24,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 class MainActivity : ComponentActivity() {
     private var notifListener: ListenerRegistration? = null
     
-    // Bildirim izni için launcher
+       // Bildirim izni için launcher
     private val requestNotificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {

@@ -1,82 +1,199 @@
-# 🛠️ MahalleUstasi (Neighborhood Pro)
+# 🏘️ MahalleUstasiApp: Yerel Hizmet Profesyonelleri Platformu
 
-MahalleUstasi is a modern Android application connecting local service professionals (Ustalar) with neighbors who need help with home repairs, renovations, and other services. Built with **Jetpack Compose** and **Firebase**, it offers a seamless experience for posting jobs, receiving offers, and managing service requests.
+MahalleUstasiApp, yerel hizmet profesyonellerini (Ustalar) ve hizmet arayan mahalle sakinlerini buluşturan, modern ve ölçeklenebilir bir Android mobil uygulamasıdır. Proje, Jetpack Compose, MVVM, Hilt ve Firebase gibi güncel teknolojileri kullanarak, güvenilir hizmet arayışını ve sunumunu kolaylaştıran bir platform sunar.
 
-![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Kotlin](https://img.shields.io/badge/Kotlin-0095D5?style=for-the-badge&logo=kotlin&logoColor=white)
-![Firebase](https://img.shields.io/badge/Firebase-039BE5?style=for-the-badge&logo=Firebase&logoColor=white)
-![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=android&logoColor=white)
+## 💡 Proje Vizyonu ve Genel Bakış
 
-## ✨ Features
+Projenin temel vizyonu, mahalle kültüründeki güvenilir "usta-komşu" ilişkisini dijital ortama taşıyarak, hizmet arama ve sunma süreçlerindeki belirsizlikleri ve zaman kaybını ortadan kaldırmaktır. Uygulama, hem iş sahiplerine hem de ustalara yönelik iki ana kullanıcı akışına sahiptir.
 
-- **🔐 Secure Authentication**: Email/Password login and registration via Firebase Auth.
-- **📋 Job Management**:
-    - Post detailed job requests with photos and location.
-    - Browse available jobs in a list or on an interactive **Google Map**.
-    - Filter jobs by category and status.
-- **💬 Real-time Bidding & Chat**:
-    - Professionals can submit offers for jobs.
-    - Job owners can review, accept, or reject offers.
-    - **Real-time chat** between job owners and professionals once an offer is discussed.
-- **👤 User Profiles**:
-    - Professional profiles with ratings and review statistics.
-    - Edit profile details and upload avatars.
-- **⭐ Reviews & Ratings**: Rate and review professionals after job completion.
-- **🔔 Notifications**: Push notifications for new offers, messages, and job updates (FCM).
-- **📍 Location Services**: Integrated location picker for accurate job positioning.
+## ✨ Temel Özellikler
 
-## 🛠️ Tech Stack
+| Kategori | Özellik | Kullanıcı Değeri |
+|----------|---------|-------------------|
+| Kullanıcı Yönetimi | Güvenli Kimlik Doğrulama | Firebase Auth ile E-posta/Şifre tabanlı, güvenli ve hızlı giriş/kayıt. |
+| İş Akışı | Detaylı İş İlanı Oluşturma | Fotoğraf ve Google Haritalar entegrasyonu ile konum bazlı, kategorize edilmiş iş talepleri. |
+| İletişim | Gerçek Zamanlı Teklif ve Sohbet | Ustaların teklif sunması, iş sahiplerinin değerlendirmesi ve kabul sonrası anlık sohbet imkanı. |
+| Güvenilirlik | Usta Profilleri ve Derecelendirme | Ustaların geçmiş işlerine ait yorum ve puanlamaları içeren şeffaf profiller. |
+| Bildirim | Anlık Push Bildirimleri (FCM) | Yeni teklifler, mesajlar ve iş durumu değişiklikleri hakkında anında bilgilendirme. |
+| Konum | Google Haritalar Entegrasyonu | İşin tam konumunu harita üzerinde işaretleme ve ustaların yakındaki işleri görmesi. |
 
-- **Language**: [Kotlin](https://kotlinlang.org/)
-- **UI Framework**: [Jetpack Compose](https://developer.android.com/jetpack/compose) (Material3)
-- **Architecture**: MVVM (Model-View-ViewModel)
-- **Dependency Injection**: [Hilt](https://dagger.dev/hilt/)
-- **Asynchronous Programming**: [Coroutines](https://kotlinlang.org/docs/coroutines-overview.html) & [Flow](https://kotlinlang.org/docs/flow.html)
-- **Backend (BaaS)**: [Firebase](https://firebase.google.com/)
-    - Authentication
-    - Firestore (NoSQL Database)
-    - Storage (Image hosting)
-    - Cloud Messaging (Notifications)
-- **Navigation**: [Compose Navigation](https://developer.android.com/guide/navigation/navigation-compose)
-- **Image Loading**: [Coil](https://coil-kt.github.io/coil/)
-- **Maps**: Google Maps SDK for Android (Maps Compose)
+## 🛠️ Teknoloji Yığını (Tech Stack)
 
-## 🚀 Getting Started
+Uygulama, performans, sürdürülebilirlik ve modernite odaklı bir teknoloji yığını ile geliştirilmiştir.
 
-### Prerequisites
-- Android Studio Hedgehog | 2023.1.1 or newer.
-- JDK 17.
-- A Firebase project.
-- A Google Maps API Key.
+### Mobil Geliştirme (Android)
 
-### Setup
+- **Dil:** Kotlin
+- **UI Framework:** Jetpack Compose (Material3)
+- **Mimari:** MVVM (Model-View-ViewModel)
+- **Bağımlılık Enjeksiyonu:** Hilt
+- **Asenkron Programlama:** Kotlin Coroutines & Flow
+- **Navigasyon:** Compose Navigation
+- **Haritalar:** Google Maps SDK for Android (Maps Compose)
+- **Görsel İşleme:** Coil (Görsel yükleme ve önbellekleme)
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/YOUR_USERNAME/MahalleUstasi.git
-    ```
-2.  **Firebase Setup:**
-    - Create a project in the [Firebase Console](https://console.firebase.google.com/).
-    - Add an Android app with package name `com.example.mahalleustasi`.
-    - Download `google-services.json` and place it in the `app/` directory.
-    - Enable **Authentication** (Email/Password).
-    - Enable **Firestore** and **Storage**.
-3.  **Maps API Key:**
-    - Get an API Key from [Google Cloud Console](https://console.cloud.google.com/).
-    - Enable "Maps SDK for Android".
-    - Add your key to `local.properties` (recommended) or directly in `AndroidManifest.xml` (for testing).
-    ```properties
-    MAPS_API_KEY=your_api_key_here
-    ```
-4.  **Build & Run:**
-    - Open the project in Android Studio.
-    - Sync Gradle files.
-    - Run on an emulator or physical device.
+### Backend ve Veri Yönetimi (BaaS)
 
-## 📸 Screenshots
+- **Platform:** Firebase
+- **Authentication:** Kullanıcı oturum yönetimi
+- **Veritabanı:** Firestore (NoSQL, gerçek zamanlı veri senkronizasyonu)
+- **Depolama:** Firebase Storage (Görsel ve dosya barındırma)
+- **Bildirimler:** Firebase Cloud Messaging (FCM)
 
-*(Add screenshots of your app here)*
+## 🏗️ Mimari Tasarım: MVVM, Hilt ve Veri Akışı
 
-## 📄 License
+Proje, temiz kod prensiplerini destekleyen MVVM mimarisi üzerine kurulmuştur ve Hilt ile bağımlılık yönetimi sağlanır.
+
+### 🔹 MVVM Katmanları ve Veri Akışı
+
+1. **View (Compose UI):** Kullanıcı arayüzünü oluşturur. ViewModel'den gelen State'i dinler ve kullanıcı etkileşimlerini ViewModel'e iletir.
+2. **ViewModel:** UI'ın durumunu yönetir (StateFlow, SharedFlow kullanarak) ve iş mantığını tetikler. Repository'den veri ister ve UI'a sunar.
+3. **Repository:** Veri kaynakları (Firestore, Storage) ile iletişim kurar. Firestore'dan gelen veriler, Kotlin Flow'lar aracılığıyla ViewModel'e iletilir. Bu katman, veri dönüşümlerini ve hata yönetimini de üstlenir.
+
+### 🔹 Bağımlılık Enjeksiyonu (Hilt)
+
+Hilt, Application, Activity, ViewModel gibi Android bileşenlerine bağımlılıkları kolayca enjekte etmek için kullanılır. Bu, test edilebilirliği ve kodun okunabilirliğini artırır.
+
+### 🔹 Asenkron Akış Yönetimi (Coroutines & Flow)
+
+- **Coroutines:** Tüm uzun süren işlemler (Firebase çağrıları, I/O işlemleri) Coroutines ile yönetilir.
+- **Flow:** Özellikle Firestore'dan gelen gerçek zamanlı güncellemeler (örneğin yeni bir teklif geldiğinde) Flow ile dinlenir ve UI'a reaktif bir şekilde yansıtılır.
+
+## 🗂️ Proje Yapısı (Önemli Klasörler)
+```
+MahalleUstasiApp/
+├─ app/
+│  ├─ src/main/java/com/example/mahalleustasi/
+│  │  ├─ data/          # Repository'ler, Veri Modelleri (Entity/DTO) ve Veri Kaynakları
+│  │  ├─ di/            # Hilt modülleri (AppModule, FirebaseModule vb.)
+│  │  ├─ domain/        # İş mantığı (Use Case'ler)
+│  │  ├─ ui/            # Jetpack Compose ekranları (View)
+│  │  │  ├─ home/
+│  │  │  ├─ job_detail/
+│  │  │  └─ ...
+│  │  ├─ viewmodel/     # ViewModel'ler (State ve Event yönetimi)
+│  │  └─ util/          # Yardımcı sınıflar ve uzantılar
+├─ functions/           # Firebase Cloud Functions (Bildirimler, Arka Plan İşlemleri)
+├─ build.gradle.kts     # Proje seviyesi Gradle dosyası
+└─ README.md            # Buradasınız
+```
+
+## 🔒 Firebase Güvenlik Kuralları (Örnek)
+
+Uygulamanın güvenliği için Firestore ve Storage kuralları, kullanıcı rollerine ve sahiplik durumuna göre sıkı bir şekilde yapılandırılmıştır.
+```javascript
+// Firestore Güvenlik Kuralları Örneği
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Kullanıcı sadece kendi profilini okuyabilir ve yazabilir
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    // İş ilanları (jobs) herkes tarafından okunabilir, ancak sadece işi oluşturan güncelleyebilir/silebilir
+    match /jobs/{jobId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth.uid == resource.data.ownerId;
+    }
+    // Teklifler (offers) sadece ilgili işin sahibi veya teklifi veren usta tarafından okunabilir
+    match /jobs/{jobId}/offers/{offerId} {
+      allow read: if request.auth.uid == get(/databases/$(database)/documents/jobs/$(jobId)).ownerId || request.auth.uid == resource.data.professionalId;
+      allow create: if request.auth != null;
+    }
+  }
+}
+```
+
+## 🚀 Kurulum ve Çalıştırma
+
+Projeyi yerel makinenizde çalıştırmak için aşağıdaki adımları takip edin.
+
+### ✅ Ön Gereksinimler
+
+- Android Studio (Hedgehog | 2023.1.1 veya daha yenisi)
+- JDK 17
+- Bir Firebase projesi
+- Bir Google Maps API Anahtarı
+- firebase-cli (Cloud Functions için)
+
+### Kurulum Adımları
+
+1. **Depoyu Klonlayın:**
+```shell
+git clone https://github.com/Faruk-Aydn/MahalleUstasiApp.git
+cd MahalleUstasiApp
+```
+
+2. **Firebase Yapılandırması:**
+   - Firebase Console üzerinden yeni bir proje oluşturun.
+   - `com.example.mahalleustasi` paket adıyla bir Android uygulaması ekleyin.
+   - Oluşturulan `google-services.json` dosyasını projenin `app/` dizinine yerleştirin.
+   - Firebase'de Authentication (E-posta/Şifre), Firestore ve Storage servislerini etkinleştirin.
+
+3. **Google Haritalar API Anahtarı:**
+   - Google Cloud Console üzerinden bir API Anahtarı alın ve "Maps SDK for Android" servisini etkinleştirin.
+   - API anahtarınızı `local.properties` dosyasına aşağıdaki gibi ekleyin:
+```
+MAPS_API_KEY=sizin_api_anahtarınız
+```
+
+4. **Derleme ve Çalıştırma:**
+   - Projeyi Android Studio'da açın.
+   - Gradle senkronizasyonunu yapın.
+   - Emülatörde veya fiziksel cihazda çalıştırın.
+
+## 📸 Ekran Görüntüleri (Screenshots)
+
+<div align="center">
+
+### Giriş ve Ana Ekranlar
+<p>
+  <img src="assets/login.png" alt="Giriş Ekranı" width="250"/>
+  <img src="assets/ana_ekran.png" alt="Ana Ekran" width="250"/>
+  <img src="assets/isler_listesi.png" alt="İşler Listesi" width="250"/>
+</p>
+
+### İş Detayları ve İşlemler
+<p>
+  <img src="assets/is_ekle.png" alt="İş Ekle" width="250"/>
+  <img src="assets/gelen_teklif_onaylama.png" alt="Gelen Teklif Onaylama" width="250"/>
+  <img src="assets/is_bitimi_onaylama.png" alt="İş Bitimi Onaylama" width="250"/>
+</p>
+
+### Profil ve İletişim
+<p>
+  <img src="assets/Profil.png" alt="Profil" width="250"/>
+  <img src="assets/degerlendirme.png" alt="Değerlendirme" width="250"/>
+  <img src="assets/digerKullanicilarinGorduguProfil.png" alt="Diğer Kullanıcıların Gördüğü Profil" width="250"/>
+</p>
+
+### Mesajlaşma ve Teklifler
+<p>
+  <img src="assets/mesaj_ekrani.png" alt="Mesaj Ekranı" width="250"/>
+  <img src="assets/teklif_inceleme.png" alt="Teklif İnceleme" width="250"/>
+  <img src="assets/tekliflerim.png" alt="Tekliflerim" width="250"/>
+</p>
+
+</div>
+
+## 🤝 Katkıda Bulunma
+
+Projenin geliştirilmesine katkıda bulunmaktan memnuniyet duyarız. Lütfen bir özellik eklemeden veya büyük bir değişiklik yapmadan önce bir Issue açarak niyetinizi belirtin.
+
+1. Projeyi Fork'layın.
+2. Yeni bir özellik dalı oluşturun (`git checkout -b feature/yeni-ozellik`).
+3. Değişikliklerinizi Commit'leyin (`git commit -m 'feat: Yeni özellik eklendi'`).
+4. Dalınıza Push yapın (`git push origin feature/yeni-ozellik`).
+5. Bir Pull Request (Çekme İsteği) açın.
+
+## 📄 Lisans
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 İletişim
+
+**Faruk Aydın** - farukaydin8245@gmail.com
+
+**Proje Bağlantısı:** https://github.com/Faruk-Aydn/MahalleUstasiApp
+
